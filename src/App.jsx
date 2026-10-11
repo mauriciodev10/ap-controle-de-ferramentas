@@ -64,6 +64,7 @@ export default function App() {
   const [aba, setAba] = useState('inventario')
   const [formFerramenta, setFormFerramenta] = useState(novoFormularioFerramenta)
   const [formRetirada, setFormRetirada] = useState(novoFormularioRetirada)
+  const [buscaFerramenta, setBuscaFerramenta] = useState('')
   const [formLogin, setFormLogin] = useState({ email: '', senha: '' })
   const [loginAberto, setLoginAberto] = useState(false)
   const [esqueceuSenha, setEsqueceuSenha] = useState(false)
@@ -74,6 +75,11 @@ export default function App() {
 
   const ferramentasDisponiveis = ferramentas.filter(
     (ferramenta) => ferramenta.status === 'DISPONIVEL',
+  )
+  const ferramentasFiltradas = ferramentasDisponiveis.filter((ferramenta) =>
+    `${ferramenta.nome} ${ferramenta.codigo ?? ''}`
+      .toLocaleLowerCase('pt-BR')
+      .includes(buscaFerramenta.trim().toLocaleLowerCase('pt-BR')),
   )
   const ferramentaPorId = new Map(ferramentas.map((item) => [item.id, item]))
 
@@ -176,7 +182,7 @@ export default function App() {
               Almoxarifado
             </p>
             <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">
-              Controle de Ferramentas
+              Controle de Ferramentas — Hidráulica 01
             </h1>
           </div>
           {usuario ? (
@@ -430,25 +436,39 @@ export default function App() {
             </h2>
             <form onSubmit={handleSubmitRetirada} className="grid gap-3">
               <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-slate-700">Buscar ferramenta</span>
+                <input
+                  type="search"
+                  value={buscaFerramenta}
+                  onChange={(event) => setBuscaFerramenta(event.target.value)}
+                  placeholder="Digite o nome ou código da ferramenta"
+                  className={classeInput}
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium text-slate-700">Ferramenta *</span>
                 <select
                   required
                   value={formRetirada.ferramentaId}
-                  onChange={(event) =>
+                  onChange={(event) => {
                     setFormRetirada((atual) => ({
                       ...atual,
                       ferramentaId: event.target.value,
                     }))
-                  }
+                    setBuscaFerramenta('')
+                  }}
                   className={classeInput}
                 >
                   <option value="">Selecione uma ferramenta disponível</option>
-                  {ferramentasDisponiveis.map((ferramenta) => (
+                  {ferramentasFiltradas.map((ferramenta) => (
                     <option key={ferramenta.id} value={ferramenta.id}>
                       {ferramenta.nome}
                       {ferramenta.codigo ? ` — ${ferramenta.codigo}` : ''}
                     </option>
                   ))}
+                  {ferramentasFiltradas.length === 0 && (
+                    <option value="" disabled>Nenhuma ferramenta encontrada</option>
+                  )}
                 </select>
               </label>
               <label className="flex flex-col gap-1.5">
