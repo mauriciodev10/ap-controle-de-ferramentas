@@ -578,7 +578,10 @@ export default function App() {
           <div className="mb-4 flex gap-2 border-b border-slate-200">
             <button
               type="button"
-              onClick={() => setAba('inventario')}
+              onClick={() => {
+                setInventarioVisivel(false)
+                setAba('inventario')
+              }}
               className={`border-b-2 px-4 py-2.5 text-sm font-medium transition ${
                 aba === 'inventario'
                   ? 'border-amber-600 text-amber-700'
@@ -589,7 +592,10 @@ export default function App() {
             </button>
             <button
               type="button"
-              onClick={() => setAba('historico')}
+              onClick={() => {
+                setInventarioVisivel(false)
+                setAba('historico')
+              }}
               className={`border-b-2 px-4 py-2.5 text-sm font-medium transition ${
                 aba === 'historico'
                   ? 'border-amber-600 text-amber-700'
