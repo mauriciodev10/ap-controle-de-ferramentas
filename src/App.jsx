@@ -24,6 +24,13 @@ function formatarTelefone(valor) {
   return `(${digitos.slice(0, 2)}) ${digitos.slice(2, 7)}-${digitos.slice(7)}`
 }
 
+function normalizarTexto(valor) {
+  return valor
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('pt-BR')
+}
+
 function novoFormularioFerramenta() {
   return { nome: '', codigo: '', categoria: '', fotoUrl: '' }
 }
@@ -62,9 +69,11 @@ export default function App() {
   } = useFerramentas()
 
   const [aba, setAba] = useState('inventario')
+  const [inventarioVisivel, setInventarioVisivel] = useState(false)
   const [formFerramenta, setFormFerramenta] = useState(novoFormularioFerramenta)
   const [formRetirada, setFormRetirada] = useState(novoFormularioRetirada)
   const [buscaFerramenta, setBuscaFerramenta] = useState('')
+  const [listaFerramentasAberta, setListaFerramentasAberta] = useState(false)
   const [formLogin, setFormLogin] = useState({ email: '', senha: '' })
   const [loginAberto, setLoginAberto] = useState(false)
   const [esqueceuSenha, setEsqueceuSenha] = useState(false)
@@ -76,10 +85,11 @@ export default function App() {
   const ferramentasDisponiveis = ferramentas.filter(
     (ferramenta) => ferramenta.status === 'DISPONIVEL',
   )
+  const buscaNormalizada = normalizarTexto(buscaFerramenta.trim())
   const ferramentasFiltradas = ferramentasDisponiveis.filter((ferramenta) =>
-    `${ferramenta.nome} ${ferramenta.codigo ?? ''}`
-      .toLocaleLowerCase('pt-BR')
-      .includes(buscaFerramenta.trim().toLocaleLowerCase('pt-BR')),
+    [ferramenta.nome, ferramenta.codigo, ferramenta.categoria]
+      .filter(Boolean)
+      .some((campo) => normalizarTexto(campo).includes(buscaNormalizada)),
   )
   const ferramentaPorId = new Map(ferramentas.map((item) => [item.id, item]))
 
@@ -268,15 +278,18 @@ export default function App() {
               className="grid gap-3 sm:max-w-md"
             >
               <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-slate-700">E-mail</span>
+                <span className="text-sm font-medium text-slate-700">
+                  {esqueceuSenha ? 'E-mail' : 'E-mail ou telefone'}
+                </span>
                 <input
                   required
-                  type="email"
+                  type={esqueceuSenha ? 'email' : 'text'}
                   autoComplete="username"
                   value={formLogin.email}
                   onChange={(event) =>
                     setFormLogin((atual) => ({ ...atual, email: event.target.value }))
                   }
+                  placeholder={esqueceuSenha ? 'nome@exemplo.com' : 'E-mail ou telefone (+5511999999999)'}
                   className={classeInput}
                 />
               </label>
@@ -435,42 +448,68 @@ export default function App() {
               Registrar retirada
             </h2>
             <form onSubmit={handleSubmitRetirada} className="grid gap-3">
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-slate-700">Buscar ferramenta</span>
+              <div
+                className="flex flex-col gap-1.5"
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget)) {
+                    setListaFerramentasAberta(false)
+                  }
+                }}
+              >
+                <label
+                  htmlFor="ferramenta-busca"
+                  className="text-sm font-medium text-slate-700"
+                >
+                  Ferramenta *
+                </label>
                 <input
+                  id="ferramenta-busca"
                   type="search"
                   value={buscaFerramenta}
-                  onChange={(event) => setBuscaFerramenta(event.target.value)}
-                  placeholder="Digite o nome ou código da ferramenta"
+                  onFocus={() => setListaFerramentasAberta(true)}
+                  onChange={(event) => {
+                    setBuscaFerramenta(event.target.value)
+                    setFormRetirada((atual) => ({ ...atual, ferramentaId: '' }))
+                    setListaFerramentasAberta(true)
+                  }}
+                  placeholder="Digite nome, código ou categoria da ferramenta"
                   className={classeInput}
                 />
-              </label>
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-slate-700">Ferramenta *</span>
-                <select
-                  required
-                  value={formRetirada.ferramentaId}
-                  onChange={(event) => {
-                    setFormRetirada((atual) => ({
-                      ...atual,
-                      ferramentaId: event.target.value,
-                    }))
-                    setBuscaFerramenta('')
-                  }}
-                  className={classeInput}
-                >
-                  <option value="">Selecione uma ferramenta disponível</option>
-                  {ferramentasFiltradas.map((ferramenta) => (
-                    <option key={ferramenta.id} value={ferramenta.id}>
-                      {ferramenta.nome}
-                      {ferramenta.codigo ? ` — ${ferramenta.codigo}` : ''}
-                    </option>
-                  ))}
-                  {ferramentasFiltradas.length === 0 && (
-                    <option value="" disabled>Nenhuma ferramenta encontrada</option>
-                  )}
-                </select>
-              </label>
+                {listaFerramentasAberta && (
+                  <ul
+                    id="lista-ferramentas-disponiveis"
+                    className="max-h-56 overflow-y-auto rounded-lg border border-slate-300 bg-white shadow-sm"
+                  >
+                    {ferramentasFiltradas.length > 0 ? (
+                      ferramentasFiltradas.map((ferramenta) => (
+                        <li key={ferramenta.id}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormRetirada((atual) => ({
+                                ...atual,
+                                ferramentaId: ferramenta.id,
+                              }))
+                              setBuscaFerramenta(
+                                `${ferramenta.nome}${ferramenta.codigo ? ` — ${ferramenta.codigo}` : ''}`,
+                              )
+                              setListaFerramentasAberta(false)
+                            }}
+                            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-amber-50 focus:bg-amber-50 focus:outline-none"
+                          >
+                            {ferramenta.nome}
+                            {ferramenta.codigo ? ` — ${ferramenta.codigo}` : ''}
+                          </button>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="px-3 py-2 text-sm text-slate-500">
+                        Nenhuma peça encontrada
+                      </li>
+                    )}
+                  </ul>
+                )}
+              </div>
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium text-slate-700">Responsável *</span>
                 <input
@@ -565,107 +604,120 @@ export default function App() {
           </div>
 
           {aba === 'inventario' && (
-            <div className="space-y-3">
-              {ferramentas.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-slate-500">
-                  Nenhuma ferramenta cadastrada no inventário.
-                </p>
-              ) : (
-                ferramentas.map((ferramenta) => {
-                  const retirada = emUso.find((item) => item.id === ferramenta.id)?.retirada
-                  const estaEmUso = ferramenta.status === 'EM_USO'
-                  return (
-                    <article
-                      key={ferramenta.id}
-                      className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div className="flex items-start gap-4">
-                        {ferramenta.foto_url && (
-                          <img
-                            src={ferramenta.foto_url}
-                            alt=""
-                            className="h-16 w-16 rounded-lg object-cover"
-                          />
-                        )}
-                        <div className="space-y-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-lg font-semibold text-slate-900">
-                              {ferramenta.nome}
-                            </h3>
-                            <span
-                              className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                estaEmUso
-                                  ? 'bg-amber-100 text-amber-800'
-                                  : 'bg-emerald-100 text-emerald-800'
-                              }`}
-                            >
-                              {estaEmUso ? 'Em uso' : 'Disponível'}
-                            </span>
-                          </div>
-                          {ferramenta.codigo && (
-                            <p className="text-sm text-slate-600">Código: {ferramenta.codigo}</p>
-                          )}
-                          {ferramenta.categoria && (
-                            <p className="text-sm text-slate-600">
-                              Categoria: {ferramenta.categoria}
-                            </p>
-                          )}
-                          {retirada && (
-                            <>
-                              <p className="text-slate-700">
-                                Responsável: <span className="font-medium">{retirada.responsavel_nome}</span>
-                              </p>
-                              <p className="text-slate-600">
-                                Contato: {retirada.responsavel_contato}
-                              </p>
-                              <p className="text-sm text-slate-500">
-                                Retirado em {formatarData(retirada.data_movimentacao)}
-                              </p>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      {(estaEmUso || isAdmin) && (
-                        <div className="flex flex-wrap items-center gap-2">
-                          {estaEmUso && (
-                            <button
-                              type="button"
-                              onClick={() => handleDevolucao(ferramenta.id)}
-                              disabled={salvando}
-                              className="rounded-lg bg-emerald-600 px-4 py-2.5 font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60"
-                            >
-                              {salvando ? 'Salvando...' : 'Marcar devolvida'}
-                            </button>
-                          )}
-                          {isAdmin && (
-                            <div className="flex flex-col items-start gap-1">
-                              <button
-                                type="button"
-                                onClick={() => handleExcluirFerramenta(ferramenta)}
-                                disabled={salvando || estaEmUso}
-                                title={
-                                  estaEmUso
-                                    ? 'Marque a ferramenta como devolvida antes de excluí-la.'
-                                    : undefined
-                                }
-                                className="rounded-lg border border-red-300 px-4 py-2.5 font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-                              >
-                                Excluir ferramenta
-                              </button>
-                              {estaEmUso && (
-                                <span className="text-xs text-slate-500">
-                                  Devolva antes de excluir.
+            <>
+              <button
+                type="button"
+                onClick={() => setInventarioVisivel((visivel) => !visivel)}
+                aria-expanded={inventarioVisivel}
+                aria-controls="lista-inventario"
+                className="mb-4 rounded-lg border border-amber-600 px-4 py-2.5 text-sm font-medium text-amber-700 transition hover:bg-amber-50"
+              >
+                {inventarioVisivel ? 'Ocultar inventário' : 'Mostrar inventário'}
+              </button>
+              {inventarioVisivel && (
+                <div id="lista-inventario" className="space-y-3">
+                  {ferramentas.length === 0 ? (
+                    <p className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-slate-500">
+                      Nenhuma ferramenta cadastrada no inventário.
+                    </p>
+                  ) : (
+                    ferramentas.map((ferramenta) => {
+                      const retirada = emUso.find((item) => item.id === ferramenta.id)?.retirada
+                      const estaEmUso = ferramenta.status === 'EM_USO'
+                      return (
+                        <article
+                          key={ferramenta.id}
+                          className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <div className="flex items-start gap-4">
+                            {ferramenta.foto_url && (
+                              <img
+                                src={ferramenta.foto_url}
+                                alt=""
+                                className="h-16 w-16 rounded-lg object-cover"
+                              />
+                            )}
+                            <div className="space-y-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="text-lg font-semibold text-slate-900">
+                                  {ferramenta.nome}
+                                </h3>
+                                <span
+                                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                    estaEmUso
+                                      ? 'bg-amber-100 text-amber-800'
+                                      : 'bg-emerald-100 text-emerald-800'
+                                  }`}
+                                >
+                                  {estaEmUso ? 'Em uso' : 'Disponível'}
                                 </span>
+                              </div>
+                              {ferramenta.codigo && (
+                                <p className="text-sm text-slate-600">Código: {ferramenta.codigo}</p>
+                              )}
+                              {ferramenta.categoria && (
+                                <p className="text-sm text-slate-600">
+                                  Categoria: {ferramenta.categoria}
+                                </p>
+                              )}
+                              {retirada && (
+                                <>
+                                  <p className="text-slate-700">
+                                    Responsável: <span className="font-medium">{retirada.responsavel_nome}</span>
+                                  </p>
+                                  <p className="text-slate-600">
+                                    Contato: {retirada.responsavel_contato}
+                                  </p>
+                                  <p className="text-sm text-slate-500">
+                                    Retirado em {formatarData(retirada.data_movimentacao)}
+                                  </p>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          {(estaEmUso || isAdmin) && (
+                            <div className="flex flex-wrap items-center gap-2">
+                              {estaEmUso && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDevolucao(ferramenta.id)}
+                                  disabled={salvando}
+                                  className="rounded-lg bg-emerald-600 px-4 py-2.5 font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                                >
+                                  {salvando ? 'Salvando...' : 'Marcar devolvida'}
+                                </button>
+                              )}
+                              {isAdmin && (
+                                <div className="flex flex-col items-start gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleExcluirFerramenta(ferramenta)}
+                                    disabled={salvando || estaEmUso}
+                                    title={
+                                      estaEmUso
+                                        ? 'Marque a ferramenta como devolvida antes de excluí-la.'
+                                        : undefined
+                                    }
+                                    className="rounded-lg border border-red-300 px-4 py-2.5 font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    Excluir ferramenta
+                                  </button>
+                                  {estaEmUso && (
+                                    <span className="text-xs text-slate-500">
+                                      Devolva antes de excluir.
+                                    </span>
+                                  )}
+                                </div>
                               )}
                             </div>
                           )}
-                        </div>
-                      )}
-                    </article>
-                  )
-                })
+                        </article>
+                      )
+                    })
+                  )}
+                </div>
               )}
-            </div>
+            </>
           )}
 
           {aba === 'historico' && (
