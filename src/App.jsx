@@ -278,18 +278,15 @@ export default function App() {
               className="grid gap-3 sm:max-w-md"
             >
               <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-slate-700">
-                  {esqueceuSenha ? 'E-mail' : 'E-mail ou telefone'}
-                </span>
+                <span className="text-sm font-medium text-slate-700">E-mail</span>
                 <input
                   required
-                  type={esqueceuSenha ? 'email' : 'text'}
+                  type="email"
                   autoComplete="username"
                   value={formLogin.email}
                   onChange={(event) =>
                     setFormLogin((atual) => ({ ...atual, email: event.target.value }))
                   }
-                  placeholder={esqueceuSenha ? 'nome@exemplo.com' : 'E-mail ou telefone (+5511999999999)'}
                   className={classeInput}
                 />
               </label>

@@ -226,18 +226,9 @@ export function useFerramentas() {
     }
   }
 
-  async function entrarComoAdmin(emailOuTelefone, senha) {
+  async function entrarComoAdmin(email, senha) {
     if (!supabase) {
       setErro('Supabase não está configurado.')
-      return false
-    }
-
-    const identificador = emailOuTelefone.trim()
-    const ehEmail = identificador.includes('@')
-    const telefone = identificador.replace(/[\s()-]/g, '')
-
-    if (!ehEmail && !/^\+[1-9]\d{7,14}$/.test(telefone)) {
-      setErro('Informe um e-mail válido ou um telefone no formato internacional, por exemplo +5511999999999.')
       return false
     }
 
@@ -245,7 +236,7 @@ export function useFerramentas() {
     setErro('')
     try {
       const { error: erroLogin } = await supabase.auth.signInWithPassword({
-        ...(ehEmail ? { email: identificador } : { phone: telefone }),
+        email: email.trim(),
         password: senha,
       })
       if (erroLogin) throw erroLogin
