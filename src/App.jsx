@@ -579,9 +579,14 @@ export default function App() {
             <button
               type="button"
               onClick={() => {
-                setInventarioVisivel(false)
-                setAba('inventario')
+                if (aba === 'inventario') {
+                  setInventarioVisivel((visivel) => !visivel)
+                } else {
+                  setAba('inventario')
+                  setInventarioVisivel(true)
+                }
               }}
+              aria-expanded={aba === 'inventario' && inventarioVisivel}
               className={`border-b-2 px-4 py-2.5 text-sm font-medium transition ${
                 aba === 'inventario'
                   ? 'border-amber-600 text-amber-700'
@@ -608,15 +613,6 @@ export default function App() {
 
           {aba === 'inventario' && (
             <>
-              <button
-                type="button"
-                onClick={() => setInventarioVisivel((visivel) => !visivel)}
-                aria-expanded={inventarioVisivel}
-                aria-controls="lista-inventario"
-                className="mb-4 rounded-lg border border-amber-600 px-4 py-2.5 text-sm font-medium text-amber-700 transition hover:bg-amber-50"
-              >
-                {inventarioVisivel ? 'Ocultar inventário' : 'Mostrar inventário'}
-              </button>
               {inventarioVisivel && (
                 <div id="lista-inventario" className="space-y-3">
                   {ferramentas.length === 0 ? (
@@ -714,7 +710,7 @@ export default function App() {
                               )}
                             </div>
                           )}
-                        </article>
+                      </article>
                       )
                     })
                   )}
