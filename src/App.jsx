@@ -69,7 +69,7 @@ export default function App() {
   } = useFerramentas()
 
   const [aba, setAba] = useState('inventario')
-  const [inventarioVisivel, setInventarioVisivel] = useState(false)
+  const inventarioVisivel = false
   const [formFerramenta, setFormFerramenta] = useState(novoFormularioFerramenta)
   const [formRetirada, setFormRetirada] = useState(novoFormularioRetirada)
   const [buscaFerramenta, setBuscaFerramenta] = useState('')
@@ -578,36 +578,31 @@ export default function App() {
           <div className="mb-4 flex gap-2 border-b border-slate-200">
             <button
               type="button"
-              onClick={() => {
-                if (aba === 'inventario') {
-                  setInventarioVisivel((visivel) => !visivel)
-                } else {
-                  setAba('inventario')
-                  setInventarioVisivel(true)
-                }
-              }}
-              aria-expanded={aba === 'inventario' && inventarioVisivel}
-              className={`border-b-2 px-4 py-2.5 text-sm font-medium transition ${
-                aba === 'inventario'
-                  ? 'border-amber-600 text-amber-700'
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Inventário ({ferramentas.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setInventarioVisivel(false)
-                setAba('historico')
-              }}
+              onClick={() =>
+                setAba((atual) => (atual === 'historico' ? 'inventario' : 'historico'))
+              }
+              aria-expanded={aba === 'historico'}
               className={`border-b-2 px-4 py-2.5 text-sm font-medium transition ${
                 aba === 'historico'
                   ? 'border-amber-600 text-amber-700'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
-              Histórico ({movimentacoes.length})
+              Inventário
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setAba((atual) => (atual === 'historico' ? 'inventario' : 'historico'))
+              }
+              aria-expanded={aba === 'historico'}
+              className={`border-b-2 px-4 py-2.5 text-sm font-medium transition ${
+                aba === 'historico'
+                  ? 'border-amber-600 text-amber-700'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Registro
             </button>
           </div>
 
